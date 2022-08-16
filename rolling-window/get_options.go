@@ -4,8 +4,10 @@ import "time"
 
 type getConfig struct {
 	CurrentWindow bool
-	WindowLeft    *time.Time
-	WindowRight   *time.Time
+
+	customWindow bool
+	WindowLeft   *time.Time
+	WindowRight  *time.Time
 }
 
 type RollingWindowGetElementOption interface {
@@ -27,6 +29,8 @@ func WithCurrentWindow() RollingWindowGetElementOption {
 
 func WithAfter(after time.Time) RollingWindowGetElementOption {
 	return rollingWindowGetElementOptionFunc(func(gc getConfig) getConfig {
+		gc.CurrentWindow = false
+		gc.customWindow = true
 		gc.WindowLeft = &after
 		return gc
 	})
@@ -34,6 +38,8 @@ func WithAfter(after time.Time) RollingWindowGetElementOption {
 
 func WithBefore(before time.Time) RollingWindowGetElementOption {
 	return rollingWindowGetElementOptionFunc(func(gc getConfig) getConfig {
+		gc.CurrentWindow = false
+		gc.customWindow = true
 		gc.WindowRight = &before
 		return gc
 	})

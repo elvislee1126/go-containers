@@ -5,7 +5,7 @@ import (
 	"log"
 	"time"
 
-	linkedmap "github.com/elvislee1126/go-containers/linked-map"
+	linkedmap "github.com/elvislee1126/gocontainers/linked-map"
 )
 
 type PositionTag int
@@ -50,12 +50,13 @@ type WindowPosition struct {
 	RelativePosition PositionTag
 }
 
-func NewRollingWindow[K comparable, V any](opts ...RollingWindowOption) *RollingWindow[K, V] {
+func New[K comparable, V any](opts ...RollingWindowOption) *RollingWindow[K, V] {
 	o := DefaultNewOptions()
 	for _, cfg := range opts {
 		o = cfg.apply(o)
 	}
 	win := &RollingWindow[K, V]{
+		verbose:          o.Verbose,
 		slotAmount:       o.SlotAmount,
 		slotSize:         o.SlotSize,
 		timeProvider:     o.TimeProvider,
@@ -119,15 +120,51 @@ func (r *RollingWindow[K, V]) Set(key K, value V) error {
 	return r.SetWithTime(key, value, time.Now())
 }
 
-func (r *RollingWindow[K, V]) Get(key K, opts ...RollingWindowGetElementOption) (val V, ok bool) {
+func (r *RollingWindow[K, V]) Get(key K, opts ...RollingWindowGetElementOption) (V, bool) {
 	var zeroVal V
-	val = zeroVal
 
 	cfg := getConfig{}
 	for _, opt := range opts {
 		cfg = opt.apply(cfg)
 	}
 
+	// 自定义窗口查询
+	if cfg.customWindow {
+		var cusRightIdx int64
+		var cusLeftIdx int64
+
+		if cfg.WindowRight == nil {
+			t := r.timeProvider()
+			cusRightIdx = r.GetWindowPosition(&t).SlotIdx
+		} else {
+			cusRightIdx = r.GetWindowPosition(cfg.WindowRight).SlotIdx
+		}
+		if cfg.WindowLeft == nil {
+			oldestSlot, has := r.slots.Oldest()
+			// 窗口是空的，没有 slot
+			if !has {
+				return zeroVal, false
+			}
+			cusLeftIdx = oldestSlot.slotIdx
+		} else {
+			cusLeftIdx = r.GetWindowPosition(cfg.WindowLeft).SlotIdx
+		}
+
+		for cursor := cusRightIdx; cursor >= cusLeftIdx; cursor-- {
+			slot, has := r.slots.Load(cursor)
+			if !has {
+				continue
+			}
+			val, ok := slot.Load(key)
+			if ok {
+				return val, true
+			}
+		}
+
+		return zeroVal, false
+	}
+
+	// 当前窗口查询
 	if cfg.CurrentWindow {
 		position := r.GetWindowPosition(nil)
 		for i := position.WindowIdx[0]; i <= position.WindowIdx[1]; i++ {
@@ -135,15 +172,14 @@ func (r *RollingWindow[K, V]) Get(key K, opts ...RollingWindowGetElementOption) 
 			if slot == nil {
 				continue
 			}
-			if valInSlot, ok2 := slot.Load(key); ok2 {
-				val = valInSlot
-				ok = true
-				break
+			if val, ok := slot.Load(key); ok {
+				return val, true
 			}
 		}
-		return
+		return zeroVal, false
 	}
-	return
+
+	return zeroVal, false
 }
 
 func (r *RollingWindow[K, V]) Size() int {

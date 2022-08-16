@@ -11,6 +11,7 @@ var (
 )
 
 type config struct {
+	Verbose       bool
 	DrainInterval time.Duration
 	SlotAmount    int64
 	SlotSize      time.Duration
@@ -54,6 +55,13 @@ func WithTimeProvider(fn TimeProvider) RollingWindowOption {
 func WithDrainInterval(d time.Duration) RollingWindowOption {
 	return rollingWindowOptionFunc(func(cfg config) config {
 		cfg.DrainInterval = d
+		return cfg
+	})
+}
+
+func WithVerbose() RollingWindowOption {
+	return rollingWindowOptionFunc(func(cfg config) config {
+		cfg.Verbose = true
 		return cfg
 	})
 }
