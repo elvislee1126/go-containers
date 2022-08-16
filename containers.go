@@ -1,8 +1,8 @@
-package main
+package containers
 
 import (
-	linkedmap "github.com/elvislee1126/gocontainers/linked-map"
-	rollingwindow "github.com/elvislee1126/gocontainers/rolling-window"
+	linkedmap "github.com/elvislee1126/go-containers/linked-map"
+	rollingwindow "github.com/elvislee1126/go-containers/rolling-window"
 )
 
 // 滑动窗口
