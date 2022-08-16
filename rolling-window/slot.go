@@ -1,7 +1,7 @@
 package rollingwindow
 
 import (
-	linkedmap "github.com/elvislee1126/go-containers/linked-map"
+	linkedmap "github.com/elvislee1126/gocontainers/linked-map"
 )
 
 type windowSlot[K comparable, V any] struct {

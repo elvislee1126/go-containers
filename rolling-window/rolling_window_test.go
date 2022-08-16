@@ -8,7 +8,7 @@ import (
 )
 
 func TestRollingWindow(t *testing.T) {
-	window := NewRollingWindow[string, int](
+	window := New[string, int](
 		WithSlotAmountAndSize(6, time.Second),
 		WithTimeProvider(func() time.Time {
 			return time.Now()
@@ -33,8 +33,44 @@ func TestRollingWindow(t *testing.T) {
 	}
 }
 
+func TestGetAfter(t *testing.T) {
+	window := New[string, int](
+		WithSlotAmountAndSize(10, time.Second),
+		WithTimeProvider(func() time.Time {
+			return time.Now()
+		}),
+		WithVerbose(),
+	)
+	window.Set("elvis", 20)
+	time.Sleep(time.Second * 3)
+	val, ok := window.Get("elvis", WithCurrentWindow())
+	if ok {
+		t.Logf("get value success, value is %d", val)
+	} else {
+		t.Fatalf("get value failed, value is %d", val)
+	}
+
+	now := time.Now()
+	dur := time.Second * -2
+	val, ok = window.Get("elvis", WithAfter(now.Add(dur)))
+	if ok {
+		t.Fatalf("still get value, value is %d", val)
+	} else {
+		t.Logf("not get value")
+	}
+
+	time.Sleep(time.Second * 8)
+	val, ok = window.Get("elvis", WithAfter(now.Add(dur)))
+	if ok {
+		t.Fatalf("still get value, value is %d", val)
+	} else {
+		t.Logf("not get value")
+	}
+
+}
+
 func BenchmarkRollingWindow(b *testing.B) {
-	window := NewRollingWindow[string, int](
+	window := New[string, int](
 		WithSlotAmountAndSize(5, time.Millisecond*500),
 		WithTimeProvider(func() time.Time {
 			return time.Now()
