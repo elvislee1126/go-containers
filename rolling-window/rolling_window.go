@@ -5,7 +5,7 @@ import (
 	"log"
 	"time"
 
-	linkedmap "github.com/elvislee1126/gocontainers/linked-map"
+	linkedmap "github.com/elvislee1126/go-containers/linked-map"
 )
 
 type PositionTag int
