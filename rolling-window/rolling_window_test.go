@@ -69,6 +69,31 @@ func TestGetAfter(t *testing.T) {
 
 }
 
+func TestDrained(t *testing.T) {
+	dur := time.Second * 5
+	window := New[string, int](
+		WithSlotAmountAndSize(1, dur),
+		WithTimeProvider(func() time.Time {
+			return time.Now()
+		}),
+	)
+	window.Set("elvis", 20)
+
+	val, ok := window.Get("elvis", WithCurrentWindow())
+	if !ok || val != 20 {
+		t.FailNow()
+		return
+	}
+
+	time.Sleep(dur)
+	val, ok = window.Get("elvis", WithCurrentWindow())
+	if ok || val == 20 {
+		t.Logf("window size is %s, after %s, but still got value, value is %v", dur.String(), dur.String(), val)
+		t.FailNow()
+		return
+	}
+}
+
 func BenchmarkRollingWindow(b *testing.B) {
 	window := New[string, int](
 		WithSlotAmountAndSize(5, time.Millisecond*500),

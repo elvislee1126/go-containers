@@ -45,7 +45,9 @@ type RollingWindow[K comparable, V any] struct {
 }
 
 type WindowPosition struct {
-	SlotIdx          int64
+	// 元素所在 slot 的 slot idx
+	SlotIdx int64
+	// 窗口的左右 slot idx，左开右闭
 	WindowIdx        [2]int64
 	RelativePosition PositionTag
 }
@@ -73,7 +75,7 @@ func New[K comparable, V any](opts ...RollingWindowOption) *RollingWindow[K, V] 
 func (r *RollingWindow[K, V]) GetWindowPosition(eleTime *time.Time) WindowPosition {
 	sysNowTime := r.timeProvider()
 	windowRightIdx := sysNowTime.UnixMilli() / r.slotSize.Milliseconds()
-	windowLeftIdx := windowRightIdx - r.slotAmount
+	windowLeftIdx := (windowRightIdx - r.slotAmount + 1)
 	position := WindowPosition{
 		WindowIdx: [2]int64{windowLeftIdx, windowRightIdx},
 	}
@@ -167,7 +169,7 @@ func (r *RollingWindow[K, V]) Get(key K, opts ...RollingWindowGetElementOption) 
 	// 当前窗口查询
 	if cfg.CurrentWindow {
 		position := r.GetWindowPosition(nil)
-		for i := position.WindowIdx[0]; i <= position.WindowIdx[1]; i++ {
+		for i := position.WindowIdx[1]; i >= position.WindowIdx[0]; i-- {
 			slot, _ := r.slots.Load(i)
 			if slot == nil {
 				continue
