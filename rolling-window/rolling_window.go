@@ -75,7 +75,7 @@ func New[K comparable, V any](opts ...RollingWindowOption) *RollingWindow[K, V] 
 func (r *RollingWindow[K, V]) GetWindowPosition(eleTime *time.Time) WindowPosition {
 	sysNowTime := r.timeProvider()
 	windowRightIdx := sysNowTime.UnixMilli() / r.slotSize.Milliseconds()
-	windowLeftIdx := (windowRightIdx - r.slotAmount + 1)
+	windowLeftIdx := (windowRightIdx - r.slotAmount)
 	position := WindowPosition{
 		WindowIdx: [2]int64{windowLeftIdx, windowRightIdx},
 	}
@@ -164,7 +164,7 @@ func (r *RollingWindow[K, V]) Get(key K, opts ...RollingWindowGetElementOption) 
 	}
 
 	// 当前窗口查询
-	if cfg.CurrentWindow {
+	if cfg.CurrentWindow || !cfg.customWindow {
 		position := r.GetWindowPosition(nil)
 		for i := position.WindowIdx[1]; i >= position.WindowIdx[0]; i-- {
 			slot, _ := r.slots.Load(i)
