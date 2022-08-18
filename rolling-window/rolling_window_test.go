@@ -99,26 +99,31 @@ func TestSetNX(t *testing.T) {
 }
 
 func TestDrained(t *testing.T) {
-	dur := time.Second * 5
+	dur := time.Second
+	drainInterval := time.Millisecond * 300
 	window := New[string, int](
-		WithSlotAmountAndSize(1, dur),
+		WithSlotAmountAndSize(5, dur),
 		WithTimeProvider(func() time.Time {
 			return time.Now()
 		}),
+		WithDrainInterval(drainInterval),
+		WithVerbose(),
 	)
-	window.Set("elvis", 20)
-
-	val, ok := window.Get("elvis", WithCurrentWindow())
-	if !ok || val != 20 {
-		t.FailNow()
+	key := "elvis"
+	value := 20
+	window.Set(key, value)
+	val, _ := window.Get(key)
+	if val != value {
+		t.Fatalf("取不到值")
+		t.Fail()
 		return
 	}
 
-	time.Sleep(dur)
-	val, ok = window.Get("elvis", WithCurrentWindow())
-	if ok || val == 20 {
-		t.Logf("window size is %s, after %s, but still got value, value is %v", dur.String(), dur.String(), val)
-		t.FailNow()
+	time.Sleep(time.Second * 2)
+	val, _ = window.Get(key)
+	if val != value {
+		t.Fatalf("取不到值，取到的值为 %d", val)
+		t.Fail()
 		return
 	}
 }
