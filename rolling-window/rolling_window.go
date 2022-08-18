@@ -96,30 +96,27 @@ func (r *RollingWindow[K, V]) GetWindowPosition(eleTime *time.Time) WindowPositi
 	return position
 }
 
-func (r *RollingWindow[K, V]) SetWithTime(key K, value V, t time.Time) error {
-	positionInfo := r.GetWindowPosition(&t)
+func (r *RollingWindow[K, V]) Set(key K, value V, opts ...RollingWindowSetElementOption) (bool, error) {
+	cfg := DefaultSetOptions()
+	for _, opt := range opts {
+		cfg = opt.apply(cfg)
+	}
+
+	positionInfo := r.GetWindowPosition(cfg.T)
 	if positionInfo.RelativePosition == BehindOfWindowTag {
-		return ErrElementBehindOfWindow
+		return false, ErrElementBehindOfWindow
 	}
 	if positionInfo.RelativePosition == LeadOfWindowTag {
-		return ErrElementLeafOfWindow
+		return false, ErrElementLeafOfWindow
 	}
-	slot, isNew := r.slots.LoadOrStore(positionInfo.SlotIdx, newWindowSlot[K, V](positionInfo.SlotIdx))
-	slot.Store(key, value)
-	// 窗口前移
-	// 新建 slot
-	if isNew {
-		if r.verbose {
-			r.logger.Printf("create new slot: slot_idx=%d", positionInfo.SlotIdx)
-		}
-		// todo 回收旧的 slot
-		// r.Drain(positionInfo)
+	slot, _ := r.slots.LoadOrStore(positionInfo.SlotIdx, newWindowSlot[K, V](positionInfo.SlotIdx))
+	if cfg.SetNX {
+		_, stored := slot.LoadOrStore(key, value)
+		return stored, nil
+	} else {
+		slot.Store(key, value)
+		return true, nil
 	}
-	return nil
-}
-
-func (r *RollingWindow[K, V]) Set(key K, value V) error {
-	return r.SetWithTime(key, value, time.Now())
 }
 
 func (r *RollingWindow[K, V]) Get(key K, opts ...RollingWindowGetElementOption) (V, bool) {
