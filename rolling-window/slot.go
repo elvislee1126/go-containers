@@ -26,6 +26,10 @@ func (slot *windowSlot[K, V]) Load(k K) (V, bool) {
 	return slot.paris.Load(k)
 }
 
+func (slot *windowSlot[K, V]) LoadOrStore(k K, v V) (V, bool) {
+	return slot.paris.LoadOrStore(k, v)
+}
+
 func (slot *windowSlot[K, V]) Size() int {
 	return slot.paris.Len()
 }

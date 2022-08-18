@@ -3,6 +3,7 @@ package rollingwindow
 import (
 	"fmt"
 	"math/rand"
+	"sync"
 	"testing"
 	"time"
 )
@@ -67,6 +68,34 @@ func TestGetAfter(t *testing.T) {
 		t.Logf("not get value")
 	}
 
+}
+
+func TestSetNX(t *testing.T) {
+	window := New[string, int](
+		WithSlotAmountAndSize(10, time.Second),
+		WithTimeProvider(func() time.Time {
+			return time.Now()
+		}),
+		WithVerbose(),
+	)
+	wg := sync.WaitGroup{}
+	wg.Add(100)
+	okCounter := 0
+	for i := 0; i < 100; i++ {
+		go func() {
+			ok, _ := window.Set("elvis", 20, WithSetNX(true))
+			if ok {
+				okCounter++
+			}
+			wg.Done()
+		}()
+	}
+	wg.Wait()
+	if okCounter != 1 {
+		t.Fatalf("期望值是只有一个线程 set 成功，但是实际上有 %d", okCounter)
+	} else {
+		t.Logf("%d", okCounter)
+	}
 }
 
 func TestDrained(t *testing.T) {
